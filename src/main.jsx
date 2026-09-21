@@ -336,139 +336,89 @@ function AddHexModal({ open, onClose, onCreate }) {
   );
 }
 
-function AuthModal({ open, onClose, onAuthenticated }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (!open) {
-      setPassword('');
-      setError('');
-      setBusy(false);
-    }
-  }, [open]);
-
-  if (!open) return null;
-
-  const submit = async (event) => {
-    event.preventDefault();
-    if (!supabase) return;
-    setBusy(true);
-    setError('');
-    try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) throw signInError;
-
-      const { data: adminRow, error: adminError } = await supabase
-        .from('bestagone_admins')
-        .select('user_id')
-        .eq('user_id', data.user.id)
-        .maybeSingle();
-
-      if (adminError) throw adminError;
-      if (!adminRow) {
-        await supabase.auth.signOut();
-        throw new Error('Ce compte n’est pas autorisé à modifier les Archives.');
-      }
-
-      onAuthenticated(data.user);
-      onClose();
-    } catch (err) {
-      setError(err.message || 'Connexion impossible.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && !busy && onClose()}>
-      <section className="auth-panel" role="dialog" aria-modal="true" aria-labelledby="auth-title">
-        <button className="modal-close auth-close" type="button" onClick={onClose} aria-label="Fermer" disabled={busy}>×</button>
-        <p className="eyebrow">ACCÈS AUX ARCHIVES</p>
-        <h2 id="auth-title">Mode édition</h2>
-        <form onSubmit={submit}>
-          <label className="bevel-field">
-            <span>E-mail</span>
-            <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={busy} />
-          </label>
-          <label className="bevel-field">
-            <span>Mot de passe</span>
-            <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={busy} />
-          </label>
-          {error && <p className="form-error" role="alert">{error}</p>}
-          <button className="hex-button primary modal-submit" type="submit" disabled={busy || !email || !password}>
-            {busy ? 'Vérification…' : 'Entrer en édition'}
-          </button>
-        </form>
-      </section>
-    </div>
-  );
-}
-
-function Archives({ items, loading, reload, user, isAdmin, setUser, setIsAdmin }) {
+function Archives({ items, loading, reload }) {
   const [editMode, setEditMode] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
   const [notice, setNotice] = useState('');
-
-  useEffect(() => {
-    if (!isAdmin) setEditMode(false);
-  }, [isAdmin]);
 
   const toggleEdit = () => {
     if (!supabaseConfigured) {
-      setNotice('Supabase n’est pas configuré. Ajoute les variables VITE_SUPABASE_URL et VITE_SUPABASE_PUBLISHABLE_KEY.');
+      setNotice(
+        'Supabase n’est pas configuré. Vérifie VITE_SUPABASE_URL et VITE_SUPABASE_PUBLISHABLE_KEY.'
+      );
       return;
     }
-    if (!isAdmin) {
-      setAuthOpen(true);
-      return;
-    }
+
     setEditMode((value) => !value);
   };
 
   const onDelete = async (item) => {
-    if (!supabase || !isAdmin) return;
-    if (!window.confirm(`Supprimer « ${item.title} » des Archives ?`)) return;
+    if (!supabase) return;
 
-    const { error } = await supabase.from('hexagons').delete().eq('id', item.id);
+    if (!window.confirm(`Supprimer « ${item.title} » des Archives ?`)) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('hexagons')
+      .delete()
+      .eq('id', item.id);
+
     if (error) {
       setNotice(error.message);
       return;
     }
 
     if (item.image_path) {
-      const { error: storageError } = await supabase.storage.from(BUCKET).remove([item.image_path]);
-      if (storageError) console.warn('Image non supprimée du stockage :', storageError.message);
+      const { error: storageError } = await supabase.storage
+        .from(BUCKET)
+        .remove([item.image_path]);
+
+      if (storageError) {
+        console.warn(
+          'Image non supprimée du stockage :',
+          storageError.message
+        );
+      }
     }
 
     await reload();
   };
 
   const onCreate = async ({ title, description, file }) => {
-    if (!supabase || !isAdmin) throw new Error('Mode édition non autorisé.');
+    if (!supabase) {
+      throw new Error('Supabase n’est pas configuré.');
+    }
 
     const blob = await imageToBlob(file);
-    const path = `${user.id}/${crypto.randomUUID()}.webp`;
-    const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, blob, {
-      contentType: 'image/webp',
-      cacheControl: '31536000',
-      upsert: false,
-    });
+
+    const path = `${crypto.randomUUID()}.webp`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, blob, {
+        contentType: 'image/webp',
+        cacheControl: '31536000',
+        upsert: false,
+      });
+
     if (uploadError) throw uploadError;
 
-    const { data: publicData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    const { data: publicData } = supabase.storage
+      .from(BUCKET)
+      .getPublicUrl(path);
+
     const imageUrl = publicData.publicUrl;
 
-    const { error: insertError } = await supabase.from('hexagons').insert({
-      title,
-      description,
-      image_url: imageUrl,
-      image_path: path,
-      created_by: user.id,
-    });
+    const { error: insertError } = await supabase
+      .from('hexagons')
+      .insert({
+        title,
+        description,
+        image_url: imageUrl,
+        image_path: path,
+      });
 
     if (insertError) {
       await supabase.storage.from(BUCKET).remove([path]);
@@ -478,39 +428,53 @@ function Archives({ items, loading, reload, user, isAdmin, setUser, setIsAdmin }
     await reload();
   };
 
-  const signOut = async () => {
-    if (supabase) await supabase.auth.signOut();
-    setEditMode(false);
-    setIsAdmin(false);
-    setUser(null);
-  };
-
   return (
     <main className="archives-page">
       <div className="archive-controls">
-        {notice && <button className="notice-chip" type="button" onClick={() => setNotice('')} title="Fermer">{notice}</button>}
-        {isAdmin && user && <button className="session-chip" type="button" onClick={signOut}>Déconnexion</button>}
-        <button className={`edit-toggle ${editMode ? 'on' : ''}`} type="button" onClick={toggleEdit}>
-          <span className="switch-hex"><i /></span>
-          <span><strong>Mode édition</strong><small>{editMode ? 'Activé' : isAdmin ? 'Désactivé' : 'Connexion requise'}</small></span>
+        {notice && (
+          <button
+            className="notice-chip"
+            type="button"
+            onClick={() => setNotice('')}
+            title="Fermer"
+          >
+            {notice}
+          </button>
+        )}
+
+        <button
+          className={`edit-toggle ${editMode ? 'on' : ''}`}
+          type="button"
+          onClick={toggleEdit}
+        >
+          <span className="switch-hex">
+            <i />
+          </span>
+
+          <span>
+            <strong>Mode édition</strong>
+            <small>{editMode ? 'Activé' : 'Désactivé'}</small>
+          </span>
         </button>
       </div>
 
       {loading ? (
-        <div className="archive-loading">CHARGEMENT DE LA RUCHE…</div>
+        <div className="archive-loading">
+          CHARGEMENT DE LA RUCHE…
+        </div>
       ) : (
-        <Honeycomb items={items} editMode={editMode} onDelete={onDelete} onAdd={() => setAdding(true)} />
+        <Honeycomb
+          items={items}
+          editMode={editMode}
+          onDelete={onDelete}
+          onAdd={() => setAdding(true)}
+        />
       )}
 
-      <AddHexModal open={adding} onClose={() => setAdding(false)} onCreate={onCreate} />
-      <AuthModal
-        open={authOpen}
-        onClose={() => setAuthOpen(false)}
-        onAuthenticated={(nextUser) => {
-          setUser(nextUser);
-          setIsAdmin(true);
-          setEditMode(true);
-        }}
+      <AddHexModal
+        open={adding}
+        onClose={() => setAdding(false)}
+        onCreate={onCreate}
       />
     </main>
   );
@@ -520,8 +484,6 @@ function App() {
   const [page, go] = useHashPage();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   const loadHexagons = useCallback(async () => {
     if (!supabase) {
@@ -531,13 +493,19 @@ function App() {
     }
 
     setLoading(true);
-    const { data, error } = await supabase.from('hexagons').select('*').order('created_at', { ascending: true });
+
+    const { data, error } = await supabase
+      .from('hexagons')
+      .select('*')
+      .order('created_at', { ascending: true });
+
     if (error) {
       console.error(error);
       setItems([]);
     } else {
       setItems(data ?? []);
     }
+
     setLoading(false);
   }, []);
 
@@ -545,53 +513,24 @@ function App() {
     loadHexagons();
   }, [loadHexagons]);
 
-  useEffect(() => {
-    if (!supabase) return undefined;
-
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      const sessionUser = data.session?.user ?? null;
-      setUser(sessionUser);
-      if (!sessionUser) {
-        setIsAdmin(false);
-        return;
-      }
-      const { data: adminRow } = await supabase
-        .from('bestagone_admins')
-        .select('user_id')
-        .eq('user_id', sessionUser.id)
-        .maybeSingle();
-      setIsAdmin(Boolean(adminRow));
-    };
-
-    checkSession();
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (!session?.user) setIsAdmin(false);
-    });
-
-    return () => listener.subscription.unsubscribe();
-  }, []);
-
   const count = useMemo(() => items.length, [items]);
 
   return (
     <div className="app-shell">
       <div className="background-grid" aria-hidden="true" />
+
       <Header page={page} go={go} />
+
       {page === 'archives' ? (
         <Archives
           items={items}
           loading={loading}
           reload={loadHexagons}
-          user={user}
-          isAdmin={isAdmin}
-          setUser={setUser}
-          setIsAdmin={setIsAdmin}
         />
       ) : (
         <Home go={go} count={count} />
       )}
+
       <footer>
         <span>LES ARCHIVES DU MEILLEURGONE</span>
         <span>6 CÔTÉS · 1 VÉRITÉ</span>
