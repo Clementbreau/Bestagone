@@ -2,12 +2,17 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 import { supabase, supabaseConfigured } from './supabase';
+import Art from './Art';
 
 const BUCKET = 'hexagons';
 const REGULAR_HEX_RATIO = Math.sqrt(3) / 2;
 
 function useHashPage() {
-  const getPage = () => (window.location.hash === '#/archives' ? 'archives' : 'home');
+  const getPage = () => {
+    if (window.location.hash === '#/archives') return 'archives';
+    if (window.location.hash === '#/art') return 'art';
+    return 'home';
+  };
   const [page, setPage] = useState(getPage);
 
   useEffect(() => {
@@ -17,7 +22,12 @@ function useHashPage() {
   }, []);
 
   const go = (next) => {
-    window.location.hash = next === 'archives' ? '#/archives' : '#/';
+    const routes = {
+      home: '#/',
+      archives: '#/archives',
+      art: '#/art',
+    };
+    window.location.hash = routes[next] ?? '#/';
   };
 
   return [page, go];
@@ -38,7 +48,7 @@ function Header({ page, go }) {
         <HexLogo />
         <span className="brand-copy">
           <strong>LE MEILLEURGONE</strong>
-          <small>Archives de la forme supérieure</small>
+          <small>le savoir a 6 cotés</small>
         </span>
       </button>
       <nav className="hex-nav" aria-label="Navigation principale">
@@ -47,6 +57,9 @@ function Header({ page, go }) {
         </button>
         <button className={page === 'archives' ? 'active' : ''} type="button" onClick={() => go('archives')}>
           Archives
+        </button>
+        <button className={page === 'art' ? 'active' : ''} type="button" onClick={() => go('art')}>
+          Art
         </button>
       </nav>
     </header>
@@ -57,11 +70,10 @@ function Home({ go, count }) {
   return (
     <main className="home-page">
       <section className="hero">
-        <div className="hero-kicker">SIX CÔTÉS. AUCUNE FAIBLESSE.</div>
         <h1>Tout est<br /><span>HEXAGONE.</span></h1>
         <p>
-          Un musée vivant consacré aux manifestations du Meilleurgone. Chaque découverte rejoint la ruche,
-          chaque création agrandit le canon.
+          Un musée répertoriant l'apogée de l'hexagone sous toutes ses formes.<br></br>
+        <strong>Honorandus et venerandus est.</strong>
         </p>
         <div className="hero-actions">
           <button className="hex-button primary" type="button" onClick={() => go('archives')}>
@@ -77,7 +89,7 @@ function Home({ go, count }) {
       <section className="manifesto" aria-label="Principes du site">
         <article className="mini-hex"><span>01</span><strong>Collecter</strong><p>Les hexagones croisés dans le monde.</p></article>
         <article className="mini-hex"><span>02</span><strong>Créer</strong><p>Les œuvres dédiées au Bestagone.</p></article>
-        <article className="mini-hex"><span>03</span><strong>Canoniser</strong><p>Une archive commune qui grandit avec la blague.</p></article>
+        <article className="mini-hex"><span>03</span><strong>Canoniser</strong><p>Une archive commune qui grandit.</p></article>
       </section>
     </main>
   );
@@ -527,13 +539,14 @@ function App() {
           loading={loading}
           reload={loadHexagons}
         />
+      ) : page === 'art' ? (
+        <Art />
       ) : (
         <Home go={go} count={count} />
       )}
 
       <footer>
-        <span>LES ARCHIVES DU MEILLEURGONE</span>
-        <span>6 CÔTÉS · 1 VÉRITÉ</span>
+        <span><a href="https://www.youtube.com/watch?v=thOifuHs6eY&t=184s">Le bestagone</a></span>
       </footer>
     </div>
   );
