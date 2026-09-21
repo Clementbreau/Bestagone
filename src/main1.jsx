@@ -122,21 +122,14 @@ function HexCard({ item, index, editMode, onDelete, onOpen, position, size }) {
           </button>
         )}
         <h2>{item.title}</h2>
-        <div
-          className="image-bevel"
-          role="button"
-          tabIndex={0}
+        <button
+          className="image-bevel archive-image-open"
+          type="button"
           onClick={() => onOpen(item)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              onOpen(item);
-            }
-          }}
           aria-label={`Ouvrir ${item.title} en plein écran`}
         >
           <img src={item.image_url} alt="" loading="lazy" />
-        </div>
+        </button>
         <p>{item.description}</p>
       </div>
     </article>
@@ -230,11 +223,11 @@ function Honeycomb({ items, editMode, onDelete, onAdd, onOpen }) {
         {items.map((item, index) => (
           <HexCard
             key={item.id}
-            onOpen={onOpen}
             item={item}
             index={index}
             editMode={editMode}
             onDelete={onDelete}
+            onOpen={onOpen}
             position={layout.positions[index] ?? { x: 0, y: 0 }}
             size={{ width: layout.width, height: layout.height }}
           />
@@ -493,15 +486,17 @@ function Archives({ items, loading, reload }) {
         <Honeycomb
           items={items}
           editMode={editMode}
-          onOpen={setSelectedHexagon}
           onDelete={onDelete}
           onAdd={() => setAdding(true)}
+          onOpen={setSelectedHexagon}
         />
       )}
+
       <ImageLightbox
         item={selectedHexagon}
         onClose={() => setSelectedHexagon(null)}
       />
+
       <AddHexModal
         open={adding}
         onClose={() => setAdding(false)}
@@ -565,7 +560,8 @@ function App() {
       )}
 
       <footer>
-        <span><a href="https://www.youtube.com/watch?v=thOifuHs6eY&t=184s">Le bestagone</a></span>
+        <span>LES ARCHIVES DU MEILLEURGONE</span>
+        <span>6 CÔTÉS · 1 VÉRITÉ</span>
       </footer>
     </div>
   );

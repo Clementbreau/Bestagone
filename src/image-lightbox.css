@@ -1,0 +1,104 @@
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(18px, 4vw, 56px);
+  background: rgba(0, 0, 0, 0.94);
+  backdrop-filter: blur(12px);
+  cursor: zoom-out;
+  animation: image-lightbox-in 0.18s ease both;
+}
+
+.image-lightbox__image {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 94vw;
+  max-height: 92vh;
+  object-fit: contain;
+  clip-path: none !important;
+  border-radius: 0;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.68);
+  cursor: default;
+  user-select: none;
+}
+
+.image-lightbox__close {
+  position: fixed;
+  top: max(18px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
+  z-index: 401;
+  width: 52px;
+  height: 45.03px;
+  border: 0;
+  display: grid;
+  place-items: center;
+  padding: 0 0 4px;
+  clip-path: var(--hex-clip, polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%));
+  background: var(--paper, #f0eadc);
+  color: var(--ink, #0a0a0a);
+  font-size: 31px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.image-lightbox__close:hover {
+  transform: scale(1.08);
+  background: var(--gold, #e6b84a);
+}
+
+.image-lightbox__close:focus-visible {
+  outline: 2px solid var(--gold, #e6b84a);
+  outline-offset: 4px;
+}
+
+.archive-image-open {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: zoom-in;
+}
+
+.archive-image-open.image-bevel {
+  cursor: zoom-in;
+}
+
+.archive-image-open:focus-visible {
+  outline: 2px solid var(--gold, #e6b84a);
+  outline-offset: 4px;
+}
+
+@keyframes image-lightbox-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 680px) {
+  .image-lightbox {
+    padding: 14px;
+  }
+
+  .image-lightbox__image {
+    max-width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
+  }
+
+  .image-lightbox__close {
+    width: 46px;
+    height: 39.84px;
+    font-size: 27px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-lightbox {
+    animation-duration: 0.01ms !important;
+  }
+}
