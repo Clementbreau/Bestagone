@@ -20,7 +20,7 @@ Dans **Build Variables and Secrets**, ajouter :
 Ces variables sont des variables de **build**, pas des variables runtime. Le Worker ne contient que des assets statiques : le message Cloudflare disant que les runtime variables ne sont pas disponibles est donc normal.
 
 Après avoir ajouté ou changé une variable, relancer un nouveau build/deploy. 
-
+ 
 ## Déploiement automatique par Git
 
 Une fois le dépôt GitHub/GitLab connecté à `bestagone`, chaque push sur `main` déclenche :
