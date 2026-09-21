@@ -1,105 +1,117 @@
-# Le Meilleurgone — V2
+# Le Meilleurgone — V2.1
 
-V2 React/Vite des Archives hexagonales.
+V2.1 de la ruche React, prête à être déployée directement sur **Cloudflare Workers Static Assets** avec Supabase comme backend partagé.
 
-## Ce qui change par rapport à la V1
+## V2.1 : ce qui change
 
-- La page Archives n'a plus d'introduction : elle ouvre directement sur la ruche de cartes.
-- Les cartes sont désormais des **hexagones réguliers** : pour un hexagone à sommet gauche/droite, la hauteur vaut `largeur × √3 / 2`, ce qui donne six côtés de même longueur.
-- La ruche est calculée dynamiquement : chaque colonne avance de `75 %` de la largeur d'une carte et une colonne sur deux descend d'une demi-hauteur. Les cartes se touchent donc réellement.
-- Plus de `localStorage` pour les archives : titres, descriptions et métadonnées sont dans PostgreSQL via Supabase ; les images sont dans Supabase Storage.
-- Le mode édition est protégé par Supabase Auth.
-- Seuls les comptes inscrits dans `bestagone_admins` peuvent créer ou supprimer des cartes.
-- Les images sont redimensionnées côté navigateur et envoyées en WebP pour économiser le stockage.
+- Le site et l'UX de la V2 sont conservés : accueil + archives en ruche, cartes hexagonales régulières, mode édition, ajout et suppression.
+- Le projet n'est plus présenté comme un projet Cloudflare Pages : `wrangler.jsonc` cible directement le Worker `bestagone`.
+- `dist/` est publié comme collection d'assets statiques Cloudflare Workers.
+- Le mode SPA est activé via `not_found_handling: "single-page-application"`.
+- Wrangler est inclus dans le projet.
+- Le build de production vérifie que les deux variables Supabase sont présentes et s'arrête avec une erreur claire si elles manquent.
+- Les données restent dans Supabase ; aucun `localStorage` n'est utilisé pour les Archives.
 
-## Architecture choisie
+## Architecture
 
-- **Frontend** : React + Vite.
-- **Hébergement frontend** : Cloudflare Pages.
-- **Base de données, authentification et stockage d'images** : Supabase.
+- React + Vite
+- Cloudflare Workers Static Assets pour l'hébergement
+- Supabase PostgreSQL pour les cartes
+- Supabase Storage pour les images
+- Supabase Auth + RLS pour protéger le mode édition
 
-Pour ce projet, cette combinaison permet de démarrer à très faible coût tout en gardant une vraie base partagée entre appareils et utilisateurs.
+Le Worker ne contient pour l'instant aucun code serveur : c'est volontaire. Cloudflare sert directement les fichiers produits par Vite, tandis que le navigateur dialogue avec Supabase grâce à la clé publishable et aux règles RLS.
 
-## 1. Installer le projet
+## 1. Supabase
+
+Si la V2 fonctionne déjà avec ton projet Supabase, tu n'as rien à recréer.
+
+Pour une installation neuve :
+
+1. Créer un projet Supabase.
+2. Ouvrir `SQL Editor`.
+3. Exécuter `supabase/schema.sql`.
+4. Créer les comptes administrateurs dans `Authentication > Users`.
+5. Ajouter chaque UUID dans `bestagone_admins` :
+
+```sql
+insert into public.bestagone_admins (user_id)
+values ('UUID_DU_COMPTE');
+```
+
+## 2. Développement local
 
 ```bash
 npm install
-```
-
-## 2. Créer le backend Supabase
-
-1. Crée un projet Supabase.
-2. Ouvre `SQL Editor`.
-3. Exécute intégralement `supabase/schema.sql`.
-4. Dans `Authentication > Users`, crée les comptes qui auront le droit d'éditer.
-5. Pour chaque compte, copie son UUID puis exécute :
-
-```sql
-INSERT INTO public.bestagone_admins (user_id)
-VALUES ('idamettre'::uuid);
-```
-
-
-
-Le site n'expose volontairement aucun formulaire d'inscription publique.
-
-## 3. Variables d'environnement
-
-Copie `.env.example` vers `.env.local` :
-
-```bash
 cp .env.example .env.local
 ```
 
-Puis remplis :
+Remplir `.env.local` :
 
 ```env
-VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_KEY
+VITE_SUPABASE_URL=https://TON_PROJET.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_TA_CLE
 ```
 
-Ces deux valeurs se trouvent dans les paramètres API du projet Supabase. La clé publishable (`sb_publishable_…`) est destinée au frontend ; la sécurité des opérations d'écriture est assurée par les règles RLS du fichier SQL. Ne mets jamais une clé `secret` dans Vite ou Cloudflare Pages.
-
-## 4. Lancer en local
+Puis :
 
 ```bash
 npm run dev
 ```
 
-## 5. Déployer sur Cloudflare Pages
+## 3. Cloudflare Workers + GitHub/GitLab
 
-Le plus simple est de pousser le dossier dans un dépôt GitHub/GitLab puis de créer un projet Pages.
+Pousser ce dossier à la racine d'un dépôt Git.
 
-Paramètres de build :
+Dans **Cloudflare > Workers & Pages > bestagone > Settings > Builds** :
 
 ```text
-Framework preset: Vite
+Production branch: main
 Build command: npm run build
-Build output directory: dist
+Deploy command: npm run deploy:cloudflare
+Root directory: laisser vide si le projet est à la racine
 ```
 
-Ajoute ensuite dans les variables d'environnement de Cloudflare Pages :
+Dans **Build Variables and Secrets**, ajouter :
 
 ```text
 VITE_SUPABASE_URL
 VITE_SUPABASE_PUBLISHABLE_KEY
 ```
 
-Puis relance le déploiement.
+Puis pousser un commit sur `main` ou relancer le dernier déploiement.
 
-## Données et sécurité
+Important : ces deux valeurs doivent être dans **Build Variables and Secrets**, pas dans les Runtime variables. Le Worker est volontairement statique ; ne pas pouvoir ajouter de runtime variables à un Worker static-assets-only est normal ici.
 
-La lecture des cartes est publique. L'ajout et la suppression nécessitent :
+## 4. Déploiement manuel alternatif
 
-1. un utilisateur authentifié ;
-2. son UUID dans la table `bestagone_admins`.
+Avec `.env.local` rempli :
 
-Les règles sont appliquées côté Supabase, donc masquer le bouton d'édition dans React n'est pas la seule protection.
+```bash
+npm install
+npx wrangler login
+npm run deploy
+```
+
+Le script `deploy` exécute :
+
+```text
+vite build
+wrangler deploy
+```
+
+## 5. Pourquoi les variables VITE sont visibles côté navigateur
+
+`VITE_SUPABASE_URL` et la clé **publishable** Supabase sont destinées au frontend. Elles sont intégrées au bundle JavaScript pendant le build. La protection de l'écriture repose sur Supabase Auth et les politiques RLS de `supabase/schema.sql`.
+
+Ne jamais mettre une clé Supabase `secret` / `service_role` dans une variable `VITE_*`.
 
 ## Fichiers principaux
 
+- `wrangler.jsonc` : configuration Cloudflare Workers Static Assets.
+- `vite.config.js` : React + validation des variables de build.
 - `src/main.jsx` : interface, ruche, authentification, création/suppression.
 - `src/styles.css` : géométrie et direction visuelle.
-- `src/supabase.js` : connexion Supabase.
-- `supabase/schema.sql` : tables, RLS et Storage.
-- `.env.example` : variables nécessaires.
+- `src/supabase.js` : client Supabase.
+- `supabase/schema.sql` : base, Auth/RLS et Storage.
+- `CLOUDFLARE.md` : procédure de déploiement exacte.
