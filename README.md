@@ -115,3 +115,21 @@ Ne jamais mettre une clé Supabase `secret` / `service_role` dans une variable `
 - `src/supabase.js` : client Supabase.
 - `supabase/schema.sql` : base, Auth/RLS et Storage.
 - `CLOUDFLARE.md` : procédure de déploiement exacte.
+
+## Page FRAGMENTS
+
+Le projet contient maintenant une page d'articles indépendante du Meilleurgone, sans lien dans la navigation principale.
+
+- Route par défaut : `/fragments` (configurable avec `VITE_JOURNAL_PATH`).
+- Style : marbre blanc/or + dérive chromatique optionnelle.
+- Articles longs : notes, trip reports, réflexions, questions, etc.
+- Brouillons et publications.
+- Mode édition protégé par Supabase Auth et les RLS existantes ; l'interface ne demande que le mot de passe.
+- Migration dédiée pour un projet Supabase déjà en ligne : `supabase/journal.sql`.
+
+Voir `JOURNAL_SETUP.md` pour la mise en ligne et les deux variables spécifiques au carnet :
+
+```env
+VITE_JOURNAL_PATH=/fragments
+VITE_JOURNAL_ADMIN_EMAIL=ton-email@example.com
+```

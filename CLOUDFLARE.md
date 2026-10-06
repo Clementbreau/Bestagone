@@ -65,3 +65,14 @@ Ouvrir le navigateur sur le site puis `F12 > Console` et vérifier d'abord :
 - erreur réseau vers `*.supabase.co` : URL/clé Supabase ou réseau ;
 - `401` / `403` : Auth/RLS Supabase ;
 - table ou relation absente : `supabase/schema.sql` n'a pas été exécuté sur le projet Supabase concerné.
+
+## Variables optionnelles pour la page FRAGMENTS
+
+Pour activer la nouvelle page d'articles et son édition par mot de passe, ajouter aussi :
+
+```text
+VITE_JOURNAL_PATH=/fragments
+VITE_JOURNAL_ADMIN_EMAIL=ton-email@example.com
+```
+
+Après déploiement, la page est directement accessible à l'adresse correspondant à `VITE_JOURNAL_PATH` mais aucun lien n'est ajouté au site principal.

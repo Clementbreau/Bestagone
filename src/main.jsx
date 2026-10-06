@@ -4,8 +4,14 @@ import './styles.css';
 import { supabase, supabaseConfigured } from './supabase';
 import Art from './Art';
 import ImageLightbox from './ImageLightbox';
+import Journal from './Journal';
 
 const BUCKET = 'hexagons';
+const normalizePath = (value) => {
+  const clean = `/${String(value || '').replace(/^\/+|\/+$/g, '')}`;
+  return clean === '/' ? '/' : clean;
+};
+const JOURNAL_PATH = normalizePath(import.meta.env.VITE_JOURNAL_PATH || '/fragments');
 const REGULAR_HEX_RATIO = Math.sqrt(3) / 2;
 
 function useHashPage() {
@@ -571,4 +577,12 @@ function App() {
   );
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+function Root() {
+  const currentPath = normalizePath(window.location.pathname);
+  if (currentPath === JOURNAL_PATH) {
+    return <Journal path={JOURNAL_PATH} />;
+  }
+  return <App />;
+}
+
+createRoot(document.getElementById('root')).render(<Root />);
